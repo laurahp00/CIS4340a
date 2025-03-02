@@ -1,4 +1,5 @@
 // compliant code
+// RULE IDS03-J do not log unsanitized user input
 if (loginSuccessful) {
   logger.severe("User login succeeded for: " + sanitizeUser(username));
 } else {
