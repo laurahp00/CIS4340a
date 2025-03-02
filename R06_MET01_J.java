@@ -1,4 +1,4 @@
-// noncompliant code
+// compliant code
 
 public static int getAbsAdd(int x, int y) {
   if (x == Integer.MIN_VALUE || y == Integer.MIN_VALUE) {
