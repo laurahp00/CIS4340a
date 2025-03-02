@@ -1,5 +1,6 @@
 // compliant code user example
 // https://wiki.sei.cmu.edu/confluence/display/java/THI01-J.+Do+not+invoke+ThreadGroup+methods
+// RULE THI01-J. Do not invoke ThreadGroup methods
 public final class NetworkHandler {
   private final ExecutorService executor;
  
