@@ -1,4 +1,4 @@
-// noncompliant code, user example 2
+// compliant code, user example
 // https://wiki.sei.cmu.edu/confluence/display/java/ERR01-J.+Do+not+allow+exceptions+to+expose+sensitive+information
 
 class ExceptionExample {
