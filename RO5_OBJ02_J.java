@@ -1,4 +1,4 @@
-// noncompliant code
+// compliant code user example
 // https://wiki.sei.cmu.edu/confluence/display/java/OBJ02-J.+Preserve+dependencies+in+subclasses+when+changing+superclasses
 
 // The CalendarImplementation object is a concrete implementation
