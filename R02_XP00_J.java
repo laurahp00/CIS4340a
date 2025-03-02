@@ -1,4 +1,5 @@
 // compliant code
+// RULE XP00-J do not ignore values returned by methods
 public void deleteFile(){
  
   File someFile = new File("someFileName.txt");
