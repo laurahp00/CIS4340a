@@ -1,33 +1,79 @@
 // noncompliant code, user example
 // https://wiki.sei.cmu.edu/confluence/display/java/FIO00-J.+Do+not+operate+on+files+in+shared+directories
-String filename = /* Provided by user */;
-Path path = new File(filename).toPath();
-try {
-  BasicFileAttributes attr = Files.readAttributes(
-      path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-  Object fileKey = attr.fileKey();
+public static boolean isInSecureDir(Path file) {
+  return isInSecureDir(file, null);
+}
+public static boolean isInSecureDir(Path file, UserPrincipal user) {
+   return isInSecureDir(file, user, 5);
+}
  
-  // Check
-  if (!attr.isRegularFile()) {
-    System.out.println("Not a regular file");
-    return;
-  }
-  // Other necessary checks
- 
-  // Use
-  try (InputStream in = Files.newInputStream(path)) {
- 
-    // Check
-    BasicFileAttributes attr2 = Files.readAttributes(
-        path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS
-    );
-    Object fileKey2 = attr2.fileKey();
-    if (!fileKey.equals(fileKey2)) {
-      System.out.println("File has been tampered with");
+/**
+ * Indicates whether file lives in a secure directory relative
+ * to the program's user
+ * @param file Path to test
+ * @param user User to test. If null, defaults to current user
+ * @param symlinkDepth Number of symbolic links allowed
+ * @return true if file's directory is secure.
+ */
+public static boolean isInSecureDir(Path file, UserPrincipal user,
+                                    int symlinkDepth) {
+  if (!file.isAbsolute()) {
+    file = file.toAbsolutePath();
+  } if (symlinkDepth <=0) {
+      // Too many levels of symbolic links
+      return false;
     }
  
-    // Read file
-  };
-} catch (IOException x) {
-  // Handle error
+  // Get UserPrincipal for specified user and superuser
+  FileSystem fileSystem =
+      Paths.get(file.getRoot().toString()).getFileSystem();
+  UserPrincipalLookupService upls =
+      fileSystem.getUserPrincipalLookupService();
+  UserPrincipal root = null;
+  try {
+    root = upls.lookupPrincipalByName("root");
+    if (user == null) {
+      user = upls.lookupPrincipalByName(System.getProperty("user.name"));
+    }
+    if (root == null || user == null) {
+      return false;
+    }
+  } catch (IOException x) {
+    return false;
+  }
+ 
+  // If any parent dirs (from root on down) are not secure,
+  // dir is not secure
+  for (int i = 1; i <= file.getNameCount(); i++) {
+    Path partialPath = Paths.get(file.getRoot().toString(),
+                                 file.subpath(0, i).toString());
+ 
+    try {
+      if (Files.isSymbolicLink(partialPath)) {
+        if (!isInSecureDir(Files.readSymbolicLink(partialPath),
+                           user, symlinkDepth - 1)) {
+          // Symbolic link, linked-to dir not secure
+          return false;
+        }
+      } else {
+        UserPrincipal owner = Files.getOwner(partialPath);
+        if (!user.equals(owner) && !root.equals(owner)) {
+          // dir owned by someone else, not secure
+          return false;
+        }
+        PosixFileAttributes attr =
+            Files.readAttributes(partialPath, PosixFileAttributes.class);
+        Set<PosixFilePermission> perms = attr.permissions();
+        if (perms.contains(PosixFilePermission.GROUP_WRITE) ||
+            perms.contains(PosixFilePermission.OTHERS_WRITE)) {
+          // Someone else can write files, not secure
+          return false;
+        }
+      }
+    } catch (IOException x) {
+      return false;
+    }
+  }
+ 
+  return true;
 }
